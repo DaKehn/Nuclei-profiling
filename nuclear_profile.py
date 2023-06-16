@@ -127,8 +127,8 @@ class NuclearProfile(ReferenceGrid):
         return 1. / density
 
 
-    def GetProjection(self, plane="XY"):
-        """ Rotates the nucleus in x -> y -> z by Euler angles """ 
+    def GetProjection(self, plane="ij"):
+        """ return projection in ij plane """ 
         if "X" in plane and "Y" in plane: return self.Xx[:, 0, 0], self.Yy[0, :, 0], np.sum(self.rho, axis=2)
         if "X" in plane and "Z" in plane: return self.Xx[:, 0, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=1)
         if "Y" in plane and "Z" in plane: return self.Yy[0, :, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=0)
