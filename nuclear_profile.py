@@ -128,7 +128,7 @@ class NuclearProfile(ReferenceGrid):
 
 
     def GetProjection(self, plane="ij"):
-        """ return projection in ij plane """ 
+        """ return projection in specified ij-plane """ 
         if "X" in plane and "Y" in plane: return self.Xx[:, 0, 0], self.Yy[0, :, 0], np.sum(self.rho, axis=2)
         if "X" in plane and "Z" in plane: return self.Xx[:, 0, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=1)
         if "Y" in plane and "Z" in plane: return self.Yy[0, :, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=0)
