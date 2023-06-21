@@ -71,6 +71,11 @@ class ReferenceGrid:
         return self.Xpa, self.Ypa, self.Zpa
     
 class NuclearProfile(ReferenceGrid):
+    NUCLEAR_RADIUS_PARAMETER = 1.2*1e-15
+
+    nuclear_radius      = None      # R 
+    nuclear_diffusion   = None      # a_0
+    nuclear_density     = None      # rho
     rho = None
 
     def __init__(self, R0, a0, beta2=0, gamma=0, beta3=0, beta4=0):
@@ -106,7 +111,7 @@ class NuclearProfile(ReferenceGrid):
         self.beta4 = beta
         self.reset_nuclei()
 
-    def set_beta(self, beta2,  beta3, beta4):
+    def set_beta(self, beta2, beta3, beta4):
         """ Set hexadecapole deformation beta4 """
         self.beta2, self.beta3, self.beta4 = beta2, beta3, beta4
         self.reset_nuclei()
@@ -126,9 +131,30 @@ class NuclearProfile(ReferenceGrid):
         density = 1 + np.exp((r - self.Rp(theta, phi)) / self.a0)
         return 1. / density
 
+    def prime_radius(self, theta, phi):
+        """Calculate the surface radius of the nucleus"""
+        prime = 1
+        if self.beta2 is not None: 
+            prime += self.beta2 * (np.cos(self.gamma) * y_lm.Y20(theta) + 1. / np.sqrt(2) * np.sin(self.gamma) * y_lm.Y22(theta, phi))
+        if self.beta3 is not None: 
+            prime += self.beta3 * y_lm.Y30(theta)
+        if self.beta4 is not None: 
+            prime += self.beta4 * y_lm.Y40(theta)
+        return prime*self.nuclear_radius
+
+    def density_wood_saxon(self, x, y, z):
+        """ Calculate the density based on the Wood-Saxon profile for deformed nuclei """
+        r, phi, theta = coord_space.cart2sph(x, y, z)
+        density = 1 + np.exp((r - self.prime_radius(theta, phi)) / self.a0)
+        return 1. / density
+
+    def density_solid_sphere(self, x, y, z):
+        r, phi, theta = coord_space.cart2sph(x, y, z)
+        density = 1 * (r<self.prime_radius(theta, phi))
+        return density
 
     def GetProjection(self, plane="ij"):
-        """ return projection in specified ij-plane """ 
+        """ Return projection in specified ij-plane """ 
         if "X" in plane and "Y" in plane: return self.Xx[:, 0, 0], self.Yy[0, :, 0], np.sum(self.rho, axis=2)
         if "X" in plane and "Z" in plane: return self.Xx[:, 0, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=1)
         if "Y" in plane and "Z" in plane: return self.Yy[0, :, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=0)
