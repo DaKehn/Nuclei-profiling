@@ -2,6 +2,7 @@ import SpHarmonics as y_lm
 import Coordinates as coord_space
 import numpy as np
 
+from nucleons import Nucleon
     
 class ReferenceGrid:
     rho        = None
@@ -15,6 +16,10 @@ class ReferenceGrid:
         self.grid_resolution    = resulution
         self.low                = low
         self.high               = high
+
+    def SetGridRange(self, low, high):
+        self.low = low
+        self.high = high
 
     def SetPrincipalAxis(self, lenght):
         """ Principal axis for 3D object, denoted along z-axis"""
@@ -71,7 +76,8 @@ class ReferenceGrid:
         return self.Xpa, self.Ypa, self.Zpa
     
 class NuclearProfile(ReferenceGrid):
-    NUCLEAR_RADIUS_PARAMETER = 1.2*1e-15
+    NUCLEAR_PREFIX           = 1e-15
+    NUCLEAR_RADIUS_PARAMETER = 1.2
 
     nuclear_radius      = None      # R0 
     nuclear_diffusion   = None      # a0
@@ -83,10 +89,9 @@ class NuclearProfile(ReferenceGrid):
     beta3 = 0
     beta4 = 0
 
-    mass_number = None
-    atomic_number = None
-    neutrons = None
-    protons = None
+    nucleon_width = 0.5
+
+    nucleons = []
 
     #, R0, a0, beta2=0, gamma=0, beta3=0, beta4=0
     def __init__(self, element=0, mass_number=0):
@@ -100,9 +105,11 @@ class NuclearProfile(ReferenceGrid):
         elif isinstance(element, int):
             self.atomic_number = element
 
-        self.mass_number        = mass_number
+        self.mass_number    = mass_number
+        self.atomic_number  = element
+        
         self.nuclear_radius     = self.get_radius_from_mass_number(mass_number)
-        self.nuclear_diffusion  = 0.5    # no particular motivation for default value
+        self.nuclear_diffusion  = 0.65    # no particular motivation for default value
         self.reset_nuclei()
 
     @classmethod
@@ -120,10 +127,19 @@ class NuclearProfile(ReferenceGrid):
 
     def reset_nuclei(self):
         """ Reinitialize all objects (wireframe, surface etc..)"""
-        self.SetPrincipalAxis(self.nuclear_radius)
         self.SetSurface(self.prime_radius)
         self.SetWireFrame(self.prime_radius)
+        
+        limit = np.amax(self.get_radius_params())
+        if not limit:
+            limit = 1.
+        
+        scale = np.amax(self.get_radius_params()) + (self.nuclear_diffusion*np.amax(self.get_radius_params()))
+
+
+        self.SetGridRange(-scale, scale)
         self.SetDensityGrid(self.density_wood_saxon)
+        self.SetPrincipalAxis(limit*1.25)
     
     def set_diffusion(self, diffusion):
         self.nuclear_diffusion = diffusion
@@ -153,6 +169,9 @@ class NuclearProfile(ReferenceGrid):
         else: print("Multipole moment {n} not defined")
         self.reset_nuclei()
 
+    def set_nucleon_width(self, width):
+        self.nucleon_width = width
+
     def prime_radius(self, theta, phi):
         """Calculate the surface radius of the nucleus"""
         prime = 1
@@ -169,6 +188,79 @@ class NuclearProfile(ReferenceGrid):
         r, phi, theta = coord_space.cart2sph(x, y, z)
         density = 1 + np.exp((r - self.prime_radius(theta, phi)) / self.nuclear_diffusion)
         return 1. / density
+
+
+    def inverse_cdf_deformed_woods_saxon(self, u, theta, phi):
+        """ Inverse CDF for the deformed Woods-Saxon distribution """
+        inverse_cdf_values = self.nuclear_radius * np.log((1/u) - 1) * self.nuclear_diffusion / self.prime_radius(theta, phi)
+        return inverse_cdf_values
+
+    def generate_nucleons_by_sampling(self):
+        """ Generate nucleons based on the Inverse Tranform Method """
+        if self.nucleons: self.nucleons = []
+
+        # generate number of protons and neutrons
+        nucleon_list = np.concatenate([
+            np.full(self.get_proton_number(), '2212'),
+            np.full(self.get_neutron_number(),'2112')
+        ])
+        np.random.shuffle(nucleon_list)
+
+
+        itry = 0
+        while len(self.nucleons) < self.mass_number:
+            # start from first nucelon in list
+            next_pdg_code = nucleon_list[len(self.nucleons)]
+
+            theta   = np.random.uniform(0, np.pi, 1)
+            phi     = np.random.uniform(0, 2 * np.pi, 1)
+            u       = np.random.uniform(0, 1, 1)
+            r       = self.inverse_cdf_deformed_woods_saxon(u, theta, phi)
+
+            ix, iy, iz = coord_space.sph2cart(r, theta, phi)
+            if not self.nucleons:
+                self.nucleons.append(
+                    Nucleon( ix[0], iy[0], iz[0], width=self.nucleon_width, pdg=next_pdg_code)
+                )
+                continue
+
+            # Assume no overlap -> if overlap break and try again
+            overlap = False
+            for inucleon in self.nucleons:
+                dist = np.sqrt((inucleon.center_position["x"] - ix)**2 + (inucleon.center_position["y"] - iy)**2 + (inucleon.center_position["z"] - iz)**2)
+                if dist < inucleon.nucleon_free_path:
+                    overlap = True
+                    break
+
+            if not overlap:
+                self.nucleons.append(
+                    Nucleon(ix[0], iy[0], iz[0], width=self.nucleon_width, pdg=next_pdg_code)
+                )
+            itry += 1
+            if itry > 1e6:
+                break
+        return
+    
+    def generate_nucleons_by_list(self, x, y, z):
+        """ Generate nucleons based on input coordinates"""
+        #  !!!  make check for lenght of list and mass number is equal 
+
+        if self.nucleons: self.nucleons = []
+        for i in range(len(x)):
+            self.nucleons.append(
+                Nucleon( x[i], y[i], z[i])
+            )
+        return
+
+    
+    def get_nucleon_coordinates(self):
+        coordinates = []
+        for nucleon in self.nucleons:
+            coordinates.append(
+                nucleon.get_center_position()
+            )
+        return coordinates
+
 
     def density_solid_sphere(self, x, y, z):
         r, phi, theta = coord_space.cart2sph(x, y, z)
@@ -190,6 +282,30 @@ class NuclearProfile(ReferenceGrid):
         self.Rx, self.Ry, self.Rz = coord_space.EulerXYZ([self.Rx, self.Ry, self.Rz], alpha, beta, gamma)
         self.Wx, self.Wy, self.Wz = coord_space.EulerXYZ([self.Wx, self.Wy, self.Wz], alpha, beta, gamma)
         return
+
+    def get_radius_params(self):
+        limits = [
+            np.amax(np.sqrt(self.Rx**2 + self.Ry**2 + self.Rz**2)),
+            np.amin(np.sqrt(self.Rx**2 + self.Ry**2 + self.Rz**2))
+        ] 
+        return limits
+
+    def get_neutrons(self):
+        return [x for x in self.nucleons if x.pdg_code == '2112']
+
+    def get_protons(self):
+        return [x for x in self.nucleons if x.pdg_code == '2212']
+
+
+
+    def get_neutron_number(self):
+        return self.mass_number - self.atomic_number
+
+    def get_proton_number(self):
+        return self.atomic_number
+
+
+
 
     def info(self):
         print(f'Mass number   \t {self.mass_number}     ')
