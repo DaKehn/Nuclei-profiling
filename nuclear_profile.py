@@ -76,6 +76,27 @@ class ReferenceGrid:
         return self.Xpa, self.Ypa, self.Zpa
     
 class NuclearProfile(ReferenceGrid):
+    """
+    A class representing a nuclear profile.
+
+    This class inherits from the `ReferenceGrid` class and provides methods to generate and manipulate the 'profile' of atomic nuclei.
+
+    Attributes:
+        NUCLEAR_PREFIX (float): A constant representing prefix (for scale).
+        NUCLEAR_RADIUS_PARAMETER (float): A constant representing the nuclear radius parameter.
+        nuclear_radius (float): The radius of the nucleus.
+        nuclear_diffusion (float): The diffusion parameter for the nuclear profile.
+        nuclear_density (float): The density of the nucleus.
+        rho (float): The density grid for the nucleus.
+        beta2 (float): The quadrupole deformation beta2.
+        gamma (float): The gamma angle for the quadrupole deformation.
+        beta3 (float): The octupole deformation beta3.
+        beta4 (float): The hexadecapole deformation beta4.
+        nucleon_width (float): The width of the nucleons.
+        nucleons (list): A list of `Nucleon` objects representing the nucleons in the nucleus.
+        atomic_number (int): The atomic number of the element.
+        mass_number (int): The mass number of the nucleus.
+    """
     NUCLEAR_PREFIX           = 1e-15
     NUCLEAR_RADIUS_PARAMETER = 1.2
 
@@ -130,18 +151,33 @@ class NuclearProfile(ReferenceGrid):
         self.SetSurface(self.prime_radius)
         self.SetWireFrame(self.prime_radius)
         
-        limit = np.amax(self.get_radius_params())
-        if not limit:
-            limit = 1.
+        # calculate the maximum radius
+        max_radius = np.amax(self.get_radius_params())
+        if not max_radius:
+            max_radius = 1.
         
-        scale = np.amax(self.get_radius_params()) + (self.nuclear_diffusion*np.amax(self.get_radius_params()))
+        # calculate mgrid scale
+        grid_scale = max_radius * (1 + self.nuclear_diffusion)
 
+        # set the grid range
+        self.SetGridRange(-grid_scale, grid_scale)
 
-        self.SetGridRange(-scale, scale)
+        # set the density grid
         self.SetDensityGrid(self.density_wood_saxon)
-        self.SetPrincipalAxis(limit*1.25)
+
+        # set the principal axis
+        self.SetPrincipalAxis(max_radius * 1.25)
     
     def set_diffusion(self, diffusion):
+        """
+        Set the diffusion parameter for the nuclear profile.
+
+        Args:
+            diffusion (float): The diffusion parameter for the nuclear profile.
+
+        Returns:
+            None
+        """
         self.nuclear_diffusion = diffusion
         self.reset_nuclei()
 
@@ -162,7 +198,16 @@ class NuclearProfile(ReferenceGrid):
         self.reset_nuclei()
 
     def set_mulitpole_strenght(self, n, strenght):
-        """ Set deformation strenght for multipole moment of n'th order"""
+        """
+        Set the deformation strength for the multipole moment of the n-th order.
+
+        Args:
+            n (int): The order of the multipole moment.
+            strenght (float): The deformation strength.
+
+        Returns:
+            None
+        """
         if   n == 2: self.set_beta2(self, strenght)
         elif n == 3: self.set_beta3(self, strenght)
         elif n == 4: self.set_beta4(self, strenght)
@@ -170,10 +215,18 @@ class NuclearProfile(ReferenceGrid):
         self.reset_nuclei()
 
     def set_nucleon_width(self, width):
+        """ Set the width of the nucleons."""
         self.nucleon_width = width
 
     def prime_radius(self, theta, phi):
-        """Calculate the surface radius of the nucleus"""
+        """Calculate the surface radius of the nucleus
+        Args:
+            theta (float): The polar angle in spherical coordinates.
+            phi (float): The azimuthal angle in spherical coordinates.
+
+        Returns:
+            float: The surface radius of the nucleus.
+        """
         prime = 1
         if self.beta2 is not None: 
             prime += self.beta2 * (np.cos(self.gamma) * y_lm.Y20(theta) + 1. / np.sqrt(2) * np.sin(self.gamma) * y_lm.Y22(theta, phi))
@@ -184,20 +237,45 @@ class NuclearProfile(ReferenceGrid):
         return prime*self.nuclear_radius
 
     def density_wood_saxon(self, x, y, z):
-        """ Calculate the density based on the Wood-Saxon profile for deformed nuclei """
+        """
+        Calculate the density based on the Wood-Saxon profile for deformed nuclei.
+
+        Args:
+            x (float): The x-coordinate.
+            y (float): The y-coordinate.
+            z (float): The z-coordinate.
+
+        Returns:
+            float: The calculated density.
+        """
         r, phi, theta = coord_space.cart2sph(x, y, z)
         density = 1 + np.exp((r - self.prime_radius(theta, phi)) / self.nuclear_diffusion)
         return 1. / density
 
 
     def inverse_cdf_deformed_woods_saxon(self, u, theta, phi):
-        """ Inverse CDF for the deformed Woods-Saxon distribution """
+        """
+        Calculate the value of the inverse cumulative distribution function (CDF) for the deformed Woods-Saxon distribution.
+
+        Args:
+            u (float): The input value for the CDF.
+            theta (float): The polar angle in spherical coordinates.
+            phi (float): The azimuthal angle in spherical coordinates.
+
+        Returns:
+            float: The inverse CDF value.
+        """
         inverse_cdf_values = self.nuclear_radius * np.log((1/u) - 1) * self.nuclear_diffusion / self.prime_radius(theta, phi)
         return inverse_cdf_values
 
     def generate_nucleons_by_sampling(self):
-        """ Generate nucleons based on the Inverse Tranform Method """
-        if self.nucleons: self.nucleons = []
+        """
+        Generate nucleons based on the Inverse Transform Method.
+
+        Returns:
+            None
+        """
+        if self.nucleons: self.nucleons.clear()
 
         # generate number of protons and neutrons
         nucleon_list = np.concatenate([
@@ -238,14 +316,29 @@ class NuclearProfile(ReferenceGrid):
                 )
             itry += 1
             if itry > 1e6:
-                break
+                raise Exception("Maximum number of iterations reached without generating the desired number of nucleons.")
+        
+        if len(self.nucleons) != self.mass_number:
+            raise Exception("Number of generated nucleons does not match the desired mass number.")
+        
         return
     
     def generate_nucleons_by_list(self, x, y, z):
-        """ Generate nucleons based on input coordinates"""
-        #  !!!  make check for lenght of list and mass number is equal 
+        """
+        Generate nucleons based on input coordinates ([x1,x2...] ,[y1,y2...], [z1,z2...]).
 
-        if self.nucleons: self.nucleons = []
+        Args:
+            x (list): A list of x-coordinates.
+            y (list): A list of y-coordinates.
+            z (list): A list of z-coordinates.
+
+        Returns:
+            None
+        """
+        if not all( len(lst) != self.mass_number for lst in [x, y, z]):
+            raise Exception(f'Mass number and lenght of arrays does not match. Expected {self.mass_number}, but got size: x({len(x)}), x({len(y)}), x({len(z)})')
+
+        if self.nucleons: self.nucleons.clear()
         for i in range(len(x)):
             self.nucleons.append(
                 Nucleon( x[i], y[i], z[i])
@@ -254,6 +347,12 @@ class NuclearProfile(ReferenceGrid):
 
     
     def get_nucleon_coordinates(self):
+        """
+        Retrieves the coordinates of each nucleon stored in the nucleons list.
+
+        Returns:
+            list: A list of tuples representing the coordinates of nucleons in the form (x, y, z).
+        """
         coordinates = []
         for nucleon in self.nucleons:
             coordinates.append(
@@ -263,18 +362,55 @@ class NuclearProfile(ReferenceGrid):
 
 
     def density_solid_sphere(self, x, y, z):
+        """
+        Calculate the density based on a solid sphere profile.
+
+        Args:
+            x (float): The x-coordinate.
+            y (float): The y-coordinate.
+            z (float): The z-coordinate.
+
+        Returns:
+            float: The density at the given coordinates.
+        """
         r, phi, theta = coord_space.cart2sph(x, y, z)
         density = 1 * (r<self.prime_radius(theta, phi))
         return density
 
-    def GetProjection(self, plane="ij"):
-        """ Return projection in specified ij-plane """ 
-        if "X" in plane and "Y" in plane: return self.Xx[:, 0, 0], self.Yy[0, :, 0], np.sum(self.rho, axis=2)
-        if "X" in plane and "Z" in plane: return self.Xx[:, 0, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=1)
-        if "Y" in plane and "Z" in plane: return self.Yy[0, :, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=0)
+    def GetProjection(self, plane="xy"):
+        """
+        Return projection in the specified ij-plane.
 
-    def Rotate(self, alpha=0, beta=0, gamma=0):
-        """ Rotates the nucleus in x -> y -> z by Euler angles (note density grid does not rotate properly for more then one rotation)""" 
+        Args:
+            plane (str): The plane in which the projection is desired. 
+                        It should be a combination of 'x', 'y', and 'z' characters.
+
+        Returns:
+            tuple: A tuple containing the ij-coordinates, and the summed density along the plane.
+        """
+        plane = plane.lower()
+        if "x" in plane and "y" in plane: 
+            return self.Xx[:, 0, 0], self.Yy[0, :, 0], np.sum(self.rho, axis=2)
+        elif "x" in plane and "z" in plane: 
+            return self.Xx[:, 0, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=1)
+        elif "y" in plane and "z" in plane: 
+            return self.Yy[0, :, 0], self.Zz[0, 0, :], np.sum(self.rho, axis=0)
+        else:
+            raise Exception(f'Uknown projection {plane}!')
+
+
+    def rotate(self, alpha=0, beta=0, gamma=0):
+        """
+        Rotates the nucleus in x(alpha) -> y(beta) -> z(gamma) by Euler angles.
+
+        Args:
+            alpha (float): The rotation angle around the x-axis in radians.
+            beta (float): The rotation angle around the y-axis in radians.
+            gamma (float): The rotation angle around the z-axis in radians.
+
+        Returns:
+            None
+        """ 
         x_rot, y_rot, z_rot = coord_space.EulerXYZ([self.Xx, self.Yy, self.Zz], alpha, beta, gamma)
         self.rho = self.density_wood_saxon(x_rot, y_rot, z_rot)
         
@@ -284,6 +420,12 @@ class NuclearProfile(ReferenceGrid):
         return
 
     def get_radius_params(self):
+        """
+        Calculate the limits of the radius if nucleus is deformed.
+
+        Returns:
+            list: A list containing the maximum and minimum radius.
+        """
         limits = [
             np.amax(np.sqrt(self.Rx**2 + self.Ry**2 + self.Rz**2)),
             np.amin(np.sqrt(self.Rx**2 + self.Ry**2 + self.Rz**2))
@@ -291,33 +433,57 @@ class NuclearProfile(ReferenceGrid):
         return limits
 
     def get_neutrons(self):
+        """
+        Retrieves the neutrons from the list of nucleons.
+
+        Returns:
+            list: A list of `Nucleon` objects representing the neutron.
+        """
         return [x for x in self.nucleons if x.pdg_code == '2112']
 
     def get_protons(self):
+        """
+        Retrieves the protons from the list of nucleons.
+
+        Returns:
+            list: A list of `Nucleon` objects representing the proton.
+        """
         return [x for x in self.nucleons if x.pdg_code == '2212']
 
 
 
     def get_neutron_number(self):
+        """Returns the number of neutrons in the nucleus."""
         return self.mass_number - self.atomic_number
 
     def get_proton_number(self):
+        """Returns the number of protons in the nucleus."""
         return self.atomic_number
 
-
-
-
     def info(self):
+        """Print the mass number and atomic number of the nuclear profile."""
         print(f'Mass number   \t {self.mass_number}     ')
         print(f'Atomic number \t {self.atomic_number}   ')
+        return
 
     @classmethod
     def get_radius_from_mass_number(cls, mass_number):
+        '''Calculate the nuclear radius based on the mass number'''
         return NuclearProfile.NUCLEAR_RADIUS_PARAMETER * pow(mass_number, 1/3.)
 
     @classmethod
     def get_z_from_name(cls, element):
-        """Find atomic number from element name"""
+        """Find atomic number from element name.
+
+        Args:
+            element (str): The name of the element.
+
+        Returns:
+            int: The atomic number of the element.
+        """
+        if not isinstance(element, str):
+            raise ValueError("Element name be a string")
+        
         match element.lower():
             case 'h'    | 'hydrogen':       return 1
             case 'he'   | 'helium':         return 2
