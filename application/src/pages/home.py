@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../')
 
-from dash import dcc, html, callback, dash
+from dash import dcc, html, callback
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
