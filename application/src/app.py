@@ -13,7 +13,7 @@ from pages import nucleon
 from utilities import scene
 from utilities import style
 
-from dash import dcc, html, callback
+from dash import dcc, html, callback, dash
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
