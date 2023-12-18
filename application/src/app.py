@@ -1,5 +1,6 @@
 import sys
 sys.path.append('../')
+sys.path.append('../../')
 sys.path.append('pages/')
 
 import argparse
@@ -26,7 +27,7 @@ profile = NuclearProfile.empty()
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME],  
                 prevent_initial_callbacks="initial_duplicate",
                 suppress_callback_exceptions=True)
-
+server = app.server
 
 surface.add_callbacks(app)
 density.add_callbacks(app)
