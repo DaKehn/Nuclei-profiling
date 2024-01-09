@@ -27,9 +27,10 @@ Additional features and capabilities might be added in the future, enhancing its
 * Python (version 3.11.3), only version tested 
 * Required dependencies: Plotly, numpy
 
+*note:* dashboard application requires the additional dependecies: plotly, dash, dash_bootstrap_components
 
 ## Disclaimer
 
-If you decide to use or incorporate this framework into your projects, please provide appropriate attribution and citation to acknowledge the original author and source. https://github.com/DaKehn/Nuclei-profiling, Frederik Roemer.
+If you decide to use or incorporate this framework into your projects, please provide appropriate attribution and citation to acknowledge the original author and source. https://github.com/DaKehn/Nuclei-profiling, Frederik K. Roemer.
 
 The code provided is intended for informational and educational purposes only. It is distributed "as is," without any warranties or guarantees of any kind, express or implied. The author and distributor of this code shall not be held liable for any damages or losses arising from its use.
