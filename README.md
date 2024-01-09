@@ -25,7 +25,7 @@ Additional features and capabilities might be added in the future, enhancing its
 ### Requirements
 
 * Python (version 3.11.3), only version tested 
-* Required dependencies: Plotly, numpy
+* Required dependencies: numpy
 
 *note:* dashboard application requires the additional dependecies: plotly, dash, dash_bootstrap_components
 
