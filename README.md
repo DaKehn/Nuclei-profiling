@@ -9,6 +9,9 @@ This framework provides a representation for atomic nuclei and facilitates the s
 
 One of the key functionalities is the ability to generate graphical representations of nucleon density distributions thorugh an interactive dashboard. This allows users to gain insights into the spatial distribution of nucleons within the nucleus witout having to poses any programming skills. The dashboard consist of numerus 'live' plotting pages, where different attributes and physics are highlighted. Each page can be used indenpendely to explore concepts, create figures or even as part of educational content.
 
+Run online: [https://nuclei-profiling.onrender.com](https://nuclei-profiling.onrender.com)
+Run local: launch application/src/app.py   
+
 ### Features
 
 * Create and illustrate atomic nuclei with intrinsic deformation through a live dashboard
