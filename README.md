@@ -16,9 +16,6 @@ One of the key functionalities is the ability to generate graphical representati
 **Run localy** launch "path/Nuclei-profiling/application/src/app.py". 
 **Online deployment** [https://nuclei-profiling.onrender.com](https://nuclei-profiling.onrender.com)
 
-Run online: [https://nuclei-profiling.onrender.com](https://nuclei-profiling.onrender.com)
-Run local: launch application/src/app.py   
-
 ### Features
 
 * Create and illustrate atomic nuclei with intrinsic deformation through a live dashboard
@@ -32,13 +29,8 @@ Beside the features listed above, additional features and capabilities might be 
 **Additional requirements for dashboard**
 * Dependencies: plotly, dash, dash_bootstrap_components
 
-* Python (version 3.11.3), only version tested 
-* Required dependencies: numpy
-
-*note:* dashboard application requires the additional dependecies: plotly, dash, dash_bootstrap_components
-
 ## Disclaimer
 
-If you decide to use or incorporate this framework into your projects, please provide appropriate attribution and citation to acknowledge the original author and source. https://github.com/DaKehn/Nuclei-profiling, Frederik K. Roemer.
+If you decide to use or incorporate this framework into your projects, please provide appropriate attribution and citation to acknowledge the original author and source. https://github.com/DaKehn/Nuclei-profiling, Frederik Roemer.
 
 The code provided is intended for informational and educational purposes only. It is distributed "as is," without any warranties or guarantees of any kind, express or implied. The author and distributor of this code shall not be held liable for any damages or losses arising from its use.
