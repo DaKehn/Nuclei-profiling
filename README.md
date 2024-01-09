@@ -4,10 +4,17 @@ This framework provides a representation for atomic nuclei and facilitates the s
 * Provide a convenient and intuitive graphical representation of the nuclear structure.
 * Simplistic experiments of the initial interaction between nuclei in high energy collision (in the works). 
 
+### Requirements
+
+* Python (version 3.11.3), only version tested 
+* Dependencies: numpy
 
 ## Interactive dashboard application
 
-One of the key functionalities is the ability to generate graphical representations of nucleon density distributions thorugh an interactive dashboard. This allows users to gain insights into the spatial distribution of nucleons within the nucleus witout having to poses any programming skills. The dashboard consist of numerus 'live' plotting pages, where different attributes and physics are highlighted. Each page can be used indenpendely to explore concepts, create figures or even as part of educational content.
+One of the key functionalities is the ability to generate graphical representations of nucleon density distributions thorugh an interactive dashboard. This allows users to gain insights into the spatial distribution of nucleons within the nucleus witout having to poses any programming skills. The dashboard consist of numerus 'live' plotting pages, where different attributes and physics are highlighted. Each page can be used indenpendely to explore concepts, create figures or even as part of educational content and ***requires no programming experience***. The dashboard application can be launched through a local environment or a online deployment on render (at the price of speed).
+
+**Run localy** launch "path/Nuclei-profiling/application/src/app.py". 
+**Online deployment** [https://nuclei-profiling.onrender.com](https://nuclei-profiling.onrender.com)
 
 Run online: [https://nuclei-profiling.onrender.com](https://nuclei-profiling.onrender.com)
 Run local: launch application/src/app.py   
@@ -19,10 +26,11 @@ Run local: launch application/src/app.py
 * Rotate the nuclei in three dimensions
 * Create projection of the nuclei in the transverse plane
 
-Additional features and capabilities might be added in the future, enhancing its functionality and providing users with even more tools for nuclear structure analysis.
+Beside the features listed above, additional features and capabilities might be added in the future, enhancing its functionality and providing users with even more tools for nuclear structure analysis.
 
 
-### Requirements
+**Additional requirements for dashboard**
+* Dependencies: plotly, dash, dash_bootstrap_components
 
 * Python (version 3.11.3), only version tested 
 * Required dependencies: numpy
